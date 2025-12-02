@@ -3,7 +3,11 @@ import { NavLink } from 'react-router-dom';
 import { Navbar, Nav, Container } from 'react-bootstrap';
 import '../styles/style.css';
 
+import { useAuth } from '../context/AuthContext';
+
 const AppNavbar = () => {
+  const { isAuthenticated, logout } = useAuth();
+
   return (
     <Navbar
       expand="lg"
@@ -21,7 +25,7 @@ const AppNavbar = () => {
           id="basic-navbar-nav"
           className="justify-content-end"
         >
-          <Nav as="ul" className="navbar-links">
+          <Nav as="ul" className="navbar-links align-items-center">
             <Nav.Item as="li">
               <NavLink to="/" className="nav-link">Home</NavLink>
             </Nav.Item>
@@ -37,6 +41,17 @@ const AppNavbar = () => {
             <Nav.Item as="li">
               <NavLink to="/about" className="nav-link">About Us</NavLink>
             </Nav.Item>
+
+            {isAuthenticated && (
+              <Nav.Item as="li" className="ms-3">
+                <button
+                  onClick={logout}
+                  className="btn btn-outline-light btn-sm rounded-0"
+                >
+                  Log Out
+                </button>
+              </Nav.Item>
+            )}
           </Nav>
         </Navbar.Collapse>
       </Container>

@@ -173,6 +173,7 @@ const Cart = () => {
       {/* CHECKOUT MODAL */}
       {showCheckout && (
         <CheckoutModal
+          show={showCheckout}
           items={modalItems}
           onClose={() => setShowCheckout(false)}
           onCheckoutComplete={() => {
@@ -183,6 +184,8 @@ const Cart = () => {
               )
             );
             setShowCheckout(false);
+            // Maybe navigate to a success page or show a success message?
+            alert("Order Placed Successfully!");
           }}
         />
       )}

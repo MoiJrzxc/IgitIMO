@@ -4,7 +4,7 @@ import { useLocation, useParams, useNavigate } from 'react-router-dom';
 import AppNavbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import BackButton from '../components/BackButton';
-import products from '../data/products';
+import { getProductById, getProducts } from '../services/api';
 import { useCart } from '../context/CartContext';
 import '../styles/style.css';
 
@@ -14,22 +14,41 @@ const ProductDetail = () => {
   const navigate = useNavigate();
   const { addItem } = useCart();
   const [added, setAdded] = useState(false);
+  const [product, setProduct] = useState(location.state?.product || null);
+  const [allRelated, setAllRelated] = useState([]);
+  const [loading, setLoading] = useState(!product);
 
-  const productFromState = location.state?.product;
-  const product =
-    productFromState || products.find((p) => String(p.id) === String(id));
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        if (!product) {
+          const fetchedProduct = await getProductById(id);
+          setProduct(fetchedProduct);
+        }
 
-  // Memoize related products
-  const allRelated = useMemo(
-    () => products.filter((p) => p.id !== product.id),
-    [product.id]
-  );
+        // Fetch related products (all products for now, filtered later)
+        const allProducts = await getProducts();
+        if (allProducts) {
+          setAllRelated(allProducts.filter(p => String(p.id) !== String(id)));
+        }
+
+      } catch (error) {
+        console.error("Failed to fetch product data", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [id, product]);
 
   const [startIndex, setStartIndex] = useState(0);
   const [fade, setFade] = useState(true);
 
   // Fade + auto-rotate related items
   useEffect(() => {
+    if (allRelated.length === 0) return;
+
     let timeout;
     const interval = setInterval(() => {
       setFade(false);
@@ -45,11 +64,15 @@ const ProductDetail = () => {
     };
   }, [allRelated.length]);
 
-  const visibleProducts = [
+  const visibleProducts = allRelated.length > 0 ? [
     allRelated[startIndex],
     allRelated[(startIndex + 1) % allRelated.length],
     allRelated[(startIndex + 2) % allRelated.length],
-  ];
+  ] : [];
+
+  if (loading) {
+    return <div className="text-center py-5">Loading...</div>;
+  }
 
   if (!product) {
     return (

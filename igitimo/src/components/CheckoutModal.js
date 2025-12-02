@@ -1,157 +1,153 @@
-import React, { useState } from "react";
-import "../styles/style.css";
+import React, { useState } from 'react';
+import { Modal, Button, Form, Row, Col, Image } from 'react-bootstrap';
+import { useAuth } from '../context/AuthContext';
 
-const CheckoutModal = ({ items, onClose, onCheckoutComplete }) => {
-  const [address, setAddress] = useState({
-    fullName: "",
-    phone: "",
-    street: "",
-    postalCode: "",
-    city: "",
+const CheckoutModal = ({ show, onClose, items, onCheckoutComplete }) => {
+  const { isAuthenticated, setShowLoginModal } = useAuth();
+  const [formData, setFormData] = useState({
+    fullName: '',
+    phoneNumber: '',
+    address: '',
+    postalCode: '',
+    street: '',
+    isDefault: false,
+    label: 'Home'
   });
 
-  const [showReceipt, setShowReceipt] = useState(false);
+  const total = items.reduce((acc, item) => acc + item.price * item.quantity, 0).toFixed(2);
 
-  const handleChange = (e) => {
-    setAddress({ ...address, [e.target.name]: e.target.value });
+  const handleLoginClick = () => {
+    onClose();
+    setShowLoginModal(true);
   };
 
-  const subtotal = items
-    .reduce((acc, item) => acc + item.price * item.quantity, 0)
-    .toFixed(2);
-
-  const handleOrder = () => {
-    // Required field validation
-    if (
-      !address.fullName ||
-      !address.phone ||
-      !address.street ||
-      !address.postalCode ||
-      !address.city
-    ) {
-      alert("Please fill in all shipping fields.");
+  const handlePlaceOrder = () => {
+    if (!isAuthenticated) {
+      // If not authenticated, maybe show an alert or open login
+      // Requirement: "if I try to check out the app should ask me to log in and the modal will popup"
+      handleLoginClick();
       return;
     }
-
-    // Show receipt first
-    setShowReceipt(true);
-  };
-
-  const handleCloseReceipt = () => {
-    setShowReceipt(false);
-
-    // Now clear cart (remove checked-out items)
-    if (onCheckoutComplete) {
-      onCheckoutComplete(items);
-    }
-
-    // Close modal
-    onClose();
+    onCheckoutComplete();
   };
 
   return (
-    <>
-      {/* MAIN CHECKOUT POPUP */}
-      {!showReceipt && (
-        <div className="modal-overlay">
-          <div className="modal-box">
-            <button className="close-modal" onClick={onClose}>×</button>
-            <h4 className="popup-title mb-3">Checkout</h4>
+    <Modal show={show} onHide={onClose} centered size="lg" backdrop="static">
+      <Modal.Header closeButton className="border-0 pb-0">
+        <Modal.Title className="fw-bold">Checkout</Modal.Title>
+      </Modal.Header>
+      <Modal.Body className="px-5 pb-5">
 
-            <div className="modal-content-scroll">
-              {items.map((item) => (
-                <div className="order-item" key={item.id}>
-                  <img src={item.image} alt={item.name} />
-                  <div>
-                    <p className="mb-0">{item.name}</p>
-                    <small>₱{item.price} × {item.quantity}</small>
-                  </div>
-                </div>
-              ))}
-
-              <h5 className="mb-2" style={{ marginTop: "1rem" }}>Shipping Address</h5>
-
-              <input
-                type="text"
-                placeholder="Full Name"
-                name="fullName"
-                value={address.fullName}
-                onChange={handleChange}
-              />
-              <input
-                type="text"
-                placeholder="Phone"
-                name="phone"
-                value={address.phone}
-                onChange={handleChange}
-              />
-              <input
-                type="text"
-                placeholder="Street, Barangay"
-                name="street"
-                value={address.street}
-                onChange={handleChange}
-              />
-              <input
-                type="text"
-                placeholder="Postal Code"
-                name="postalCode"
-                value={address.postalCode}
-                onChange={handleChange}
-              />
-              <input
-                type="text"
-                placeholder="City, Province"
-                name="city"
-                value={address.city}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div className="popup-actions">
-              <span className="fw-bold">Total: ₱{subtotal}</span>
-              <button className="confirm-btn" onClick={handleOrder}>
-                Place Order
-              </button>
-            </div>
+        {!isAuthenticated && (
+          <div className="d-flex justify-content-end align-items-center mb-4">
+            <span className="me-2">Already have an account?</span>
+            <Button variant="dark" size="sm" onClick={handleLoginClick}>Log in</Button>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* RECEIPT POPUP */}
-      {showReceipt && (
-        <div className="modal-overlay">
-          <div className="modal-box">
-            <h4 className="popup-title">Order Receipt</h4>
-
-            <p><strong>Name:</strong> {address.fullName}</p>
-            <p><strong>Phone:</strong> {address.phone}</p>
-            <p>
-              <strong>Address:</strong> {address.street}, {address.city},{" "}
-              {address.postalCode}
-            </p>
-
-            <hr />
-
-            {items.map((item) => (
-              <p key={item.id}>
-                {item.name} — ₱{item.price} × {item.quantity}
-              </p>
-            ))}
-
-            <hr />
-
-            <h5>Total: ₱{subtotal}</h5>
-
-            <div className="popup-actions">
-              <button className="confirm-btn" onClick={handleCloseReceipt}>
-                Done
-              </button>
+        {/* Product List - Only show if authenticated or if we want to show it always? 
+            User image shows products in "logged out" view too. */}
+        <div className="mb-4">
+          {items.map(item => (
+            <div key={item.id} className="d-flex align-items-center mb-3 p-2 border rounded bg-light">
+              <Image src={item.image} alt={item.name} style={{ width: '60px', height: '60px', objectFit: 'cover' }} className="rounded me-3" />
+              <div>
+                <div className="fw-bold">{item.name}</div>
+                <div className="text-muted small">₱{item.price}</div>
+                <div className="text-muted small">Quantity: {item.quantity}</div>
+              </div>
             </div>
-          </div>
+          ))}
         </div>
-      )}
-    </>
+
+        <h5 className="fw-bold mb-3">Shipping Address</h5>
+        <Form>
+          <Form.Group className="mb-3">
+            <Form.Control
+              type="text"
+              placeholder="Full Name"
+              className="bg-light border-light py-2"
+              value={formData.fullName}
+              onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+            />
+          </Form.Group>
+          <Form.Group className="mb-3">
+            <Form.Control
+              type="text"
+              placeholder="Phone Number"
+              className="bg-light border-light py-2"
+              value={formData.phoneNumber}
+              onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+            />
+          </Form.Group>
+          <Form.Group className="mb-3">
+            <Form.Control
+              type="text"
+              placeholder="Region, Province, City, Barangay"
+              className="bg-light border-light py-2"
+              value={formData.address}
+              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+            />
+          </Form.Group>
+          <Form.Group className="mb-3">
+            <Form.Control
+              type="text"
+              placeholder="Postal Code"
+              className="bg-light border-light py-2"
+              value={formData.postalCode}
+              onChange={(e) => setFormData({ ...formData, postalCode: e.target.value })}
+            />
+          </Form.Group>
+          <Form.Group className="mb-3">
+            <Form.Control
+              type="text"
+              placeholder="Street Name, Building, House No."
+              className="bg-light border-light py-2"
+              value={formData.street}
+              onChange={(e) => setFormData({ ...formData, street: e.target.value })}
+            />
+          </Form.Group>
+
+          <div className="d-flex align-items-center mb-3">
+            <Form.Check
+              type="switch"
+              id="default-address"
+              label="Set as default address"
+              className="me-4"
+              checked={formData.isDefault}
+              onChange={(e) => setFormData({ ...formData, isDefault: e.target.checked })}
+            />
+          </div>
+
+          <div className="d-flex align-items-center mb-4">
+            <span className="me-3 text-muted">Label as:</span>
+            <Button
+              variant={formData.label === 'Work' ? 'dark' : 'outline-secondary'}
+              size="sm"
+              className="me-2 rounded-pill px-3"
+              onClick={() => setFormData({ ...formData, label: 'Work' })}
+            >
+              Work
+            </Button>
+            <Button
+              variant={formData.label === 'Home' ? 'dark' : 'outline-secondary'}
+              size="sm"
+              className="rounded-pill px-3"
+              onClick={() => setFormData({ ...formData, label: 'Home' })}
+            >
+              Home
+            </Button>
+          </div>
+
+          <div className="d-flex justify-content-between align-items-center mt-5">
+            <div className="fs-5 fw-bold">Total <span className="ms-2">{total}</span></div>
+            <Button variant="dark" size="lg" className="px-4" onClick={handlePlaceOrder}>
+              Place Order
+            </Button>
+          </div>
+        </Form>
+      </Modal.Body>
+    </Modal>
   );
 };
 

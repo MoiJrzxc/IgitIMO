@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Button, Card } from 'react-bootstrap';
 import AppNavbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import '../styles/style.css';
-import products from '../data/products';
+import { getProducts } from '../services/api';
 
 const ProductCard = ({ product }) => (
   <Card className="product-card border-0 rounded-0 h-100">
@@ -23,6 +23,34 @@ const ProductCard = ({ product }) => (
 );
 
 const Home = () => {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const data = await getProducts();
+        setProducts(data);
+      } catch (error) {
+        console.error("Failed to fetch products", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
+  if (loading) {
+    return <div className="text-center py-5">Loading...</div>;
+  }
+
+  // Ensure we have enough products before rendering specific indices
+  const flavor1 = products[19] || {};
+  const flavor2 = products[11] || {};
+  const bestSeller = products[11] || {};
+  const featured = [products[2], products[6], products[7]].filter(Boolean);
+
   return (
     <div className="homePage">
       <AppNavbar />
@@ -71,28 +99,32 @@ const Home = () => {
             {/* First flavor image */}
             <Col lg={6} className="text-center">
               <div className="flavor-img-wrapper mb-4">
-                <img
-                  src={products[19].image}
-                  alt={products[19].name}
-                  className="img-fluid flavor-image"
-                />
+                {flavor1.image && (
+                  <img
+                    src={flavor1.image}
+                    alt={flavor1.name}
+                    className="img-fluid flavor-image"
+                  />
+                )}
               </div>
             </Col>
 
             {/* Second flavor image */}
             <Col lg={6} className="text-center">
               <div className="flavor-img-wrapper">
-                <img
-                  src={products[11].image}
-                  alt={products[11].name}
-                  className="img-fluid flavor-image"
-                />
+                {flavor2.image && (
+                  <img
+                    src={flavor2.image}
+                    alt={flavor2.name}
+                    className="img-fluid flavor-image"
+                  />
+                )}
               </div>
             </Col>
 
             <Col lg={6}>
               <h3 className="best-title mb-2">Our Best Seller!</h3>
-              <p className="best-desc">{products[11].description}</p>
+              <p className="best-desc">{bestSeller.description}</p>
               <Button
                 href="/products"
                 variant="dark"
@@ -110,15 +142,11 @@ const Home = () => {
         <Container fluid className="px-5">
           <h2 className="display-6 fw-bold mb-4">Cakes Cakes Cakes</h2>
           <Row className="g-4">
-            <Col lg={6}>
-              <ProductCard product={products[2]} />
-            </Col>
-            <Col lg={3}>
-              <ProductCard product={products[6]} />
-            </Col>
-            <Col lg={3}>
-              <ProductCard product={products[7]} />
-            </Col>
+            {featured.map((product) => (
+              <Col lg={product.id === 2 ? 6 : 3} key={product.id}>
+                <ProductCard product={product} />
+              </Col>
+            ))}
           </Row>
         </Container>
       </section>
