@@ -6,7 +6,7 @@ import '../styles/style.css';
 import { useAuth } from '../context/AuthContext';
 
 const AppNavbar = () => {
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, logout, setShowRoleModal } = useAuth();
 
   return (
     <Navbar
@@ -39,7 +39,9 @@ const AppNavbar = () => {
             </Nav.Item>
 
             <Nav.Item as="li">
-              <NavLink to="/about" className="nav-link">About Us</NavLink>
+              <Nav.Link as="button" onClick={() => setShowRoleModal(true)} className="nav-link bg-transparent border-0">
+                Account
+              </Nav.Link>
             </Nav.Item>
 
             {isAuthenticated && (
