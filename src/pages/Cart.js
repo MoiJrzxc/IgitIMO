@@ -22,6 +22,7 @@ const Cart = () => {
   const [loadingCart, setLoadingCart] = useState(false);
   const [loadingQty, setLoadingQty] = useState({});
   const [loadingDelete, setLoadingDelete] = useState(false);
+  const [checkoutError, setCheckoutError] = useState("");
 
   // Load cart from backend
   const loadCart = () => {
@@ -93,14 +94,27 @@ const Cart = () => {
 
     setLoadingQty(prev => ({ ...prev, [cart_item_id]: true }));
 
+    // Optimistic update
     setCartItems(prev =>
       prev.map(ci => (ci.id === cart_item_id ? { ...ci, quantity: newQuantity } : ci))
     );
 
+    console.log(`Updating quantity for item ${cart_item_id} to ${newQuantity}`);
+
     axios
-      .patch(`${API_BASE}/cart/update/${cart_item_id}`, { quantity: newQuantity })
-      .then(() => loadCart())
-      .catch(err => console.error("Failed to update quantity:", err))
+      .patch(`${API_BASE}/cart/update-quantity/${cart_item_id}`, { quantity: newQuantity })
+      .then(() => {
+        console.log("Quantity update success");
+        loadCart();
+      })
+      .catch(err => {
+        console.error("Failed to update quantity:", err);
+        // Revert on failure
+        setCartItems(prev =>
+          prev.map(ci => (ci.id === cart_item_id ? { ...ci, quantity: item.quantity } : ci))
+        );
+        alert("Failed to update quantity. Please try again.");
+      })
       .finally(() => setLoadingQty(prev => ({ ...prev, [cart_item_id]: false })));
   };
 
@@ -121,12 +135,23 @@ const Cart = () => {
     .reduce((acc, item) => acc + (Number(item.product?.price) || 0) * item.quantity, 0)
     .toFixed(2);
 
+
+
   const handleCheckout = () => {
+    console.log("Checkout button clicked");
+    setCheckoutError("");
+
     const selected = cartItems.filter(s =>
       selectedItems.find(sel => sel.id === s.id && sel.selected)
     );
+
+    console.log("Selected items:", selected);
+
     if (selected.length === 0) {
-      alert("Please select at least one product to checkout.");
+      console.warn("No items selected for checkout");
+      setCheckoutError("Please select at least one product to checkout.");
+      // Clear error after 3 seconds
+      setTimeout(() => setCheckoutError(""), 3000);
       return;
     }
     setModalItems(selected);
@@ -220,6 +245,7 @@ const Cart = () => {
                 <span className="fw-bold">
                   Subtotal: <span className="text-success">₱{subtotal}</span>
                 </span>
+                {checkoutError && <span className="text-danger ms-3 small">{checkoutError}</span>}
                 <button
                   className="checkout-btn"
                   onClick={handleCheckout}
@@ -241,13 +267,23 @@ const Cart = () => {
           items={modalItems}
           onClose={() => setShowCheckout(false)}
           onCheckoutComplete={({ shippingAddress }) => {
+            console.log("Sending checkout request...", { user_id: user.id, items: modalItems, shipping_address: shippingAddress });
             axios
               .post(`${API_BASE}/checkout`, { user_id: user.id, items: modalItems, shipping_address: shippingAddress })
               .then(() => {
+                console.log("Checkout success");
                 Promise.all(modalItems.map(item => axios.delete(`${API_BASE}/cart/remove/${item.id}`)))
                   .then(() => { loadCart(); setShowCheckout(false); alert("Order Placed Successfully!"); });
               })
-              .catch(err => console.error("Checkout failed:", err));
+              .catch(err => {
+                console.error("Checkout failed:", err);
+                if (err.response) {
+                  console.error("Server Error:", err.response.data);
+                  alert(`Checkout Failed: ${err.response.data.message || "Server Error"}`);
+                } else {
+                  alert("Checkout Failed: Network Error or Server Unreachable");
+                }
+              });
           }}
         />
       )}

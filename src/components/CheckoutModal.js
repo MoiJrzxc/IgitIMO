@@ -73,8 +73,24 @@ const CheckoutModal = ({ show, onClose, items, onCheckoutComplete }) => {
   };
 
   const handlePlaceOrder = () => {
+    console.log("Place Order clicked", formData);
     if (!isAuthenticated) return handleLoginClick();
-    onCheckoutComplete({ shippingAddress: formData });
+
+    // Transform to snake_case for backend
+    const payload = {
+      full_name: formData.fullName,
+      phone_number: formData.phoneNumber,
+      region: formData.region,
+      province: formData.province,
+      city: formData.city,
+      barangay: formData.barangay,
+      postal_code: formData.postalCode,
+      street_building_house: formData.street, // Mapped to 'street' in form
+      is_default: formData.isDefault,
+      label: formData.label
+    };
+
+    onCheckoutComplete({ shippingAddress: payload });
   };
 
   return (
@@ -95,11 +111,11 @@ const CheckoutModal = ({ show, onClose, items, onCheckoutComplete }) => {
             const price = Number(item.product?.price) || 0;
             return (
               <div key={item.id} className="d-flex align-items-center mb-3 p-2 border rounded bg-light">
-                <Image 
-                  src={item.product?.image || "https://placehold.co/60x60?text=No+Image"} 
-                  alt={item.product?.name || "Product"} 
-                  style={{ width: '60px', height: '60px', objectFit: 'cover' }} 
-                  className="rounded me-3" 
+                <Image
+                  src={item.product?.image || "https://placehold.co/60x60?text=No+Image"}
+                  alt={item.product?.name || "Product"}
+                  style={{ width: '60px', height: '60px', objectFit: 'cover' }}
+                  className="rounded me-3"
                 />
                 <div>
                   <div className="fw-bold">{item.product?.name}</div>
@@ -113,7 +129,7 @@ const CheckoutModal = ({ show, onClose, items, onCheckoutComplete }) => {
 
         <h5 className="fw-bold mb-3">Shipping Address</h5>
         <Form>
-          {['fullName','phoneNumber','region','province','city','barangay','postalCode','street'].map(field => (
+          {['fullName', 'phoneNumber', 'region', 'province', 'city', 'barangay', 'postalCode', 'street'].map(field => (
             <Form.Group className="mb-3" key={field}>
               <Form.Control
                 type="text"

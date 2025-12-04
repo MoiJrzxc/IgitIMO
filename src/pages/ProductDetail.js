@@ -68,10 +68,10 @@ const ProductDetail = () => {
   const visibleProducts =
     allRelated.length >= 3
       ? [
-          allRelated[startIndex],
-          allRelated[(startIndex + 1) % allRelated.length],
-          allRelated[(startIndex + 2) % allRelated.length]
-        ]
+        allRelated[startIndex],
+        allRelated[(startIndex + 1) % allRelated.length],
+        allRelated[(startIndex + 2) % allRelated.length]
+      ]
       : allRelated;
 
   // ✅ UPDATED: Add to cart with loading indicator
@@ -88,19 +88,30 @@ const ProductDetail = () => {
 
     setLoadingAdd(true); // 🔥 Show loading spinner
 
-    axios.post(`${API_BASE}/cart/add`, {
+    const payload = {
       user_id: user.id,
       product_id: product.id,
       quantity: 1
-    })
-    .then(() => {
-      setAdded(true);
-      setTimeout(() => setAdded(false), 2000);
-    })
-    .catch(err => console.error("Add to cart failed:", err))
-    .finally(() => {
-      setLoadingAdd(false); // 🔥 Hide loading spinner
-    });
+    };
+
+    console.log("Sending Add to Cart request:", payload);
+
+    axios.post(`${API_BASE}/cart/add`, payload)
+      .then(() => {
+        console.log("Add to cart success");
+        setAdded(true);
+        setTimeout(() => setAdded(false), 2000);
+      })
+      .catch(err => {
+        console.error("Add to cart failed:", err);
+        if (err.response) {
+          console.error("Server responded with:", err.response.status);
+          console.error("Response data:", err.response.data);
+        }
+      })
+      .finally(() => {
+        setLoadingAdd(false); // 🔥 Hide loading spinner
+      });
   };
 
   return (

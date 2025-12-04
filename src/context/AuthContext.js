@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext } from 'react';
+import React, { createContext, useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const AuthContext = createContext(null);
@@ -51,6 +51,14 @@ export const AuthProvider = ({ children }) => {
     setShowRoleModal(true);
     navigate('/'); // Redirect to home
   };
+
+  // Auto-logout if state is inconsistent
+  useEffect(() => {
+    if (isAuthenticated && !user) {
+      console.warn("Inconsistent auth state detected. Logging out.");
+      logout();
+    }
+  }, [isAuthenticated, user]);
 
   return (
     <AuthContext.Provider
